@@ -1,0 +1,32 @@
+#
+# Makefile.target - Architecture-independent Makefile
+#
+# Copyright (C) 2021 Linzhi Ltd.
+#
+# This work is licensed under the terms of the MIT License.
+# A copy of the license can be found in the file COPYING.txt
+#
+
+NAME = libcommon
+
+CFLAGS = -g -O9 -Wall -Wextra -Wshadow -Wno-unused-parameter \
+         -Wmissing-prototypes -Wmissing-declarations \
+	 -D_FILE_OFFSET_BITS=64
+OBJS = thread.o format.o dtime.o mqtt.o
+
+
+include Makefile.c-common 
+
+# ----- libcommon.a -----------------------------------------------------------
+
+all::		| $(OBJDIR:%/=%)
+all::		$(OBJDIR)$(NAME).a
+
+$(OBJDIR:%/=%):
+		mkdir -p $@
+
+$(OBJDIR)$(NAME).a: $(OBJS_IN_OBJDIR)
+		$(BUILD) $(AR) cr $@ $^
+
+spotless::
+		rm -f $(OBJDIR)$(NAME).a
