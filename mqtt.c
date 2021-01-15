@@ -293,17 +293,25 @@ void mqtt_thread(void)
 }
 
 
-void mqtt_loop_forever(void)
+void mqtt_loop_once(void)
 {
 	int res;
 
 	assert(initialized);
-	do res = mosquitto_loop_forever(mosq, -1, 1);
-	while (res == MOSQ_ERR_SUCCESS);
+	res = mosquitto_loop_forever(mosq, -1, 1);
+	if (res == MOSQ_ERR_SUCCESS)
+		return;
 
-	fprintf(stderr, "mosquitto_loop_forever: %s\n",
+	fprintf(stderr, "mosquitto_loop_once: %s\n",
 	    mosquitto_strerror(res));
 	exit(1);
+}
+
+
+void mqtt_loop_forever(void)
+{
+	while (1)
+		mqtt_loop_once();
 }
 
 

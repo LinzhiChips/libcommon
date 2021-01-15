@@ -59,8 +59,9 @@ void mqtt_poll(short revents);
 
 void mqtt_thread(void);
 
-/* run in a loop, forever */
+/* run in a loop, once or forever */
 
+void mqtt_loop_once(void);
 void mqtt_loop_forever(void) __attribute__((noreturn));
 
 /* host may be NULL, port may be 0 */
