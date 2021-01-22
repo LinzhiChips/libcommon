@@ -46,6 +46,14 @@ void mqtt_printf_arg(const char *topic, enum mqtt_qos qos, bool retain,
     const char *arg, const char *fmt, ...)
     __attribute__((format(printf, 5, 6)));
 
+/*
+ * mqtt_last_will must be called before (!) mqtt_init.
+ * topic == NULL clears the last will message.
+ */
+ 
+void mqtt_last_will(const char *topic, enum mqtt_qos qos, bool retain,
+    const char *fmt, ...);
+
 void mqtt_subscribe(const char *topic, enum mqtt_qos qos,
     void (*cb)(void *user, const char *topic, const char *msg), void *user,
     ...)

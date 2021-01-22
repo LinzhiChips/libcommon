@@ -48,6 +48,10 @@ static bool is_threaded = 0;
 static bool shutting_down = 0;
 static unsigned pub_enq = 0;
 static volatile unsigned pub_ack = 0;
+static char *will_topic = NULL;
+static char *will_msg = NULL;
+static enum mqtt_qos will_qos;
+static bool will_retain;
 
 
 /* ----- Synchronization --------------------------------------------------- */
@@ -113,6 +117,35 @@ void mqtt_printf_arg(const char *topic, enum mqtt_qos qos, bool retain,
 	mqtt_vprintf(t, qos, retain, fmt, ap);
 	va_end(ap);
 	free(t);
+}
+
+
+/* ----- Last will --------------------------------------------------------- */
+
+
+void mqtt_last_will(const char *topic, enum mqtt_qos qos, bool retain,
+    const char *fmt, ...)
+{
+	va_list ap;
+
+	assert(!initialized);
+
+	free(will_topic);
+	free(will_msg);
+	will_topic = will_msg = NULL;
+
+	if (!topic)
+		return;
+
+	will_topic = stralloc(topic);
+	va_start(ap, fmt);
+	if (asprintf(&will_msg, fmt, ap) < 0) {
+		perror("asprintf");
+		exit(1);
+	}
+	va_end(ap);
+	will_qos = qos;
+	will_retain = retain;
 }
 
 
@@ -335,6 +368,18 @@ void mqtt_init(const char *host, uint16_t port)
 	mosquitto_publish_callback_set(mosq, published);
 
 	pthread_mutex_init(&mutex, NULL);
+
+	if (will_topic) {
+		if (mqtt_verbose > 1)
+			fprintf(stderr, "WILL \"%s\" -> \"%s\"\n",
+			    will_topic, will_msg);
+		res = mosquitto_will_set(mosq, will_topic,
+		    strlen(will_msg), will_msg, will_qos, will_retain);
+		if (res != MOSQ_ERR_SUCCESS)
+			fprintf(stderr,
+			    "warning: mosquitto_set_will (%s): %s\n",
+			    will_topic, mosquitto_strerror(res));
+	}
 
 	initialized = 1;
 
