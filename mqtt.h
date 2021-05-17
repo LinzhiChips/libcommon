@@ -69,7 +69,7 @@ void mqtt_thread(void);
 
 /* run in a loop, once or forever */
 
-void mqtt_loop_once(void);
+void mqtt_loop_once(int timeout_ms); /* -1 for the default of 1000 ms */
 void mqtt_loop_forever(void) __attribute__((noreturn));
 
 /* host may be NULL, port may be 0 */
