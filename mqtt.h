@@ -54,6 +54,8 @@ void mqtt_printf_arg(const char *topic, enum mqtt_qos qos, bool retain,
 void mqtt_last_will(const char *topic, enum mqtt_qos qos, bool retain,
     const char *fmt, ...);
 
+void mqtt_deliver(const char *topic, const char *payload);
+
 void mqtt_subscribe(const char *topic, enum mqtt_qos qos,
     void (*cb)(void *user, const char *topic, const char *msg), void *user,
     ...)
@@ -75,6 +77,7 @@ void mqtt_loop_forever(void) __attribute__((noreturn));
 /* host may be NULL, port may be 0 */
 
 void mqtt_init(const char *host, uint16_t port);
+void mqtt_testing(void);
 void mqtt_end(void);
 
 #endif /* !LINZHI_LIBCOMMON_MQTT_H */

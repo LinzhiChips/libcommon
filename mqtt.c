@@ -52,6 +52,7 @@ static char *will_topic = NULL;
 static char *will_msg = NULL;
 static enum mqtt_qos will_qos;
 static bool will_retain;
+static bool testing = 0;
 
 
 /* ----- Synchronization --------------------------------------------------- */
@@ -82,10 +83,15 @@ void mqtt_vprintf(const char *topic, enum mqtt_qos qos, bool retain,
 	if (mqtt_verbose > 1)
 		fprintf(stderr, "MQTT \"%s\" -> \"%s\"\n", topic, s);
 	pub_enq++;
-	res = mosquitto_publish(mosq, NULL, topic, strlen(s), s, qos, retain);
-	if (res != MOSQ_ERR_SUCCESS)
-		fprintf(stderr, "warning: mosquitto_publish (%s): %s\n",
-		    topic, mosquitto_strerror(res));
+	if (testing) {
+		printf("%s:%s\n", topic, s);
+	} else {
+		res = mosquitto_publish(mosq, NULL, topic, strlen(s), s,
+		    qos, retain);
+		if (res != MOSQ_ERR_SUCCESS)
+			fprintf(stderr, "warning: mosquitto_publish (%s): %s\n",
+			    topic, mosquitto_strerror(res));
+	}
 	free(s);
 }
 
@@ -152,10 +158,21 @@ void mqtt_last_will(const char *topic, enum mqtt_qos qos, bool retain,
 /* ----- Subscriptions and reception --------------------------------------- */
 
 
+void mqtt_deliver(const char *topic, const char *payload)
+{
+	const struct sub *sub;
+
+	lock(&mutex);
+	for (sub = subs; sub; sub = sub->next)
+		if (!strcmp(sub->topic, topic))
+			sub->cb(sub->user, topic, payload);
+	unlock(&mutex);
+}
+
+
 static void message(struct mosquitto *m, void *user,
     const struct mosquitto_message *msg)
 {
-	const struct sub *sub;
 	char *buf;
 
 	assert(initialized);
@@ -169,11 +186,7 @@ static void message(struct mosquitto *m, void *user,
 	memcpy(buf, msg->payload, msg->payloadlen);
 	buf[msg->payloadlen] = 0;
 
-	lock(&mutex);
-	for (sub = subs; sub; sub = sub->next)
-		if (!strcmp(sub->topic, msg->topic))
-			sub->cb(sub->user, sub->topic, buf);
-	unlock(&mutex);
+	mqtt_deliver(msg->topic, buf);
 	free(buf);
 }
 
@@ -390,6 +403,13 @@ void mqtt_init(const char *host, uint16_t port)
 		    mosquitto_strerror(res));
 		exit(1);
 	}
+}
+
+
+void mqtt_testing(void)
+{
+	testing = 1;
+	initialized = 1;
 }
 
 
