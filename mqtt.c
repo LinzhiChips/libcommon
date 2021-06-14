@@ -425,6 +425,20 @@ void mqtt_end(void)
 			break;
 		usleep(10000);
 	}
+
+	/*
+	 * @@@ There is currently an issue with MQTT sometimes (rarely) hanging
+	 * with one thread running mosquitto_loop > pselect while the other
+	 * tries to __pthread_timedjoin_ex. The cause is not yet determined,
+	 * but it may be this:
+	 * https://bugs.launchpad.net/mosquitto/+bug/1207414
+	 *
+	 * Since we currently only use mqtt_end from liblzi2c to clean up on
+	 * process exit, and thus never reuse the MQTT stack in the same
+	 * process, we may as well just quit without further ado.
+	 */
+	return;
+
 	if (is_connected) {
 		res = mosquitto_disconnect(mosq);
 		if (res != MOSQ_ERR_SUCCESS) {
